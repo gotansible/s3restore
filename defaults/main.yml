@@ -1,0 +1,14 @@
+---
+
+s3restore_bucket_name: mybackup.backups.mysite.com
+s3restore_bucket_folder: general
+s3restore_year: 2015
+
+s3restore_archive_file: therootname.tar.gz
+
+s3restore_in_dir: /tmp
+
+s3restore_delete_first: false
+
+s3restore_temp: /tmp/s3restore
+

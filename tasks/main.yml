@@ -1,0 +1,60 @@
+---
+
+- name: dependencies
+  include: depend.yml
+
+- set_fact:
+    temp_folder_name: "{{ 2 | pow(31) | random }}"
+
+- name: clear temp directory
+  file:
+    state=absent
+    path={{ s3restore_temp }}/{{ temp_folder_name }}
+
+- name: ensure temp directory exists
+  file:
+    state=directory
+    path={{ s3restore_temp }}/{{ temp_folder_name }}
+    mode=750
+
+- name: download archive
+  s3:
+    bucket={{ s3backup_bucket_name }}
+    dest={{ s3restore_temp }}/
+    object=/{{ s3restore_year }}/{{ s3backup_bucket_folder }}/{{ s3restore_archive_file }}
+    mode=get
+
+- name: unarchive
+  unarchive:
+    copy=no
+    src={{ s3restore_temp }}/{{ s3restore_archive_file }}
+    dest={{ s3restore_temp }}/{{ temp_folder_name }}/
+
+- name: get extracted folder name
+  find:
+    paths={{ s3restore_in_dir }}/{{ temp_folder_name }}/
+  register: extracted_files
+
+- set_fact:
+    extracted_folder: "{{ extracted_files[0].path | basename }}"
+
+- name: ensure restore in directory exists
+  file:
+    state=directory
+    path={{ s3restore_in_dir }}
+
+- name: optionally delete existing folder
+  file:
+    state=absent
+    path={{ s3restore_in_dir }}/{{ extracted_folder }}
+  when: s3restore_delete_first and (extraxcted_folder | length > 0)
+
+- name: move extracted backup into place
+  command: mv {{ s3restore_temp }}/{{ temp_folder_name }}/* {{ s3restore_in_dir }}
+
+- name: remove temp file
+  file:
+    state=absent
+    path={{ s3restore_temp }}
+
+
